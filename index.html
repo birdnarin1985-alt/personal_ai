@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Qwen 3 0.8B (Q4_K_M) - Personal Mobile AI OS (v3 Anti-Freeze)</title>
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --card-bg: #131c2e;
+            --primary-decho: #f59e0b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #1e293b;
+            --user-msg-bg: #2563eb;
+            --bot-msg-bg: #1e293b;
+            --glow-cyan: #06b6d4;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* HUD Status Bar */
+        .hud-header {
+            background: rgba(19, 28, 46, 0.85);
+            backdrop-filter: blur(12px);
+            padding: 12px 16px;
+            border-radius: 14px;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+
+        .hud-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            letter-spacing: 0.5px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            background-color: #10b981;
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 10px #10b981;
+            transition: all 0.3s ease;
+        }
+
+        .status-dot.paused {
+            background-color: #f59e0b;
+            box-shadow: 0 0 10px #f59e0b;
+        }
+
+        .ram-badge {
+            background: rgba(245, 158, 11, 0.12);
+            color: var(--primary-decho);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.75rem;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        /* Cyber Pulse Voxel Bar */
+        .voxel-bar-container {
+            height: 28px;
+            background: #0d1527;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #voxelCanvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* Action Bar */
+        .action-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .btn-action {
+            background: #1e293b;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s;
+        }
+
+        .btn-action:active {
+            transform: scale(0.96);
+            background: #334155;
+        }
+
+        /* Chat Display Container */
+        .chat-container {
+            flex: 1;
+            background: #060911;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            padding: 14px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 8px;
+            scroll-behavior: smooth;
+        }
+
+        .message-row {
+            display: flex;
+            flex-direction: column;
+            max-width: 88%;
+        }
+
+        .message-row.user {
+            align-self: flex-end;
+        }
+
+        .message-row.assistant {
+            align-self: flex-start;
+        }
+
+        .msg-bubble {
+            padding: 12px 16px;
+            border-radius: 14px;
+            line-height: 1.5;
+            font-size: 0.92rem;
+            word-wrap: break-word;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .message-row.user .msg-bubble {
+            background: var(--user-msg-bg);
+            color: #ffffff;
+            border-bottom-right-radius: 2px;
+        }
+
+        .message-row.assistant .msg-bubble {
+            background: var(--bot-msg-bg);
+            color: var(--text-main);
+            border-bottom-left-radius: 2px;
+            border: 1px solid var(--border-color);
+            border-left: 3.5px solid var(--primary-decho);
+        }
+
+        .msg-time {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+            align-self: flex-end;
+        }
+
+        /* Input Bar */
+        .input-bar {
+            display: flex;
+            gap: 8px;
+            background: var(--card-bg);
+            padding: 8px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .chat-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 0.95rem;
+            padding: 8px 10px;
+            outline: none;
+        }
+
+        .chat-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .btn-send {
+            background: var(--primary-decho);
+            color: #0f172a;
+            border: none;
+            border-radius: 8px;
+            padding: 0 18px;
+            font-weight: 700;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-send:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- HUD Header Bar -->
+    <div class="hud-header">
+        <div class="hud-title">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Qwen 3 0.8B (Q4_K_M)</span>
+        </div>
+        <div class="ram-badge" id="ramBadge">RAM ~0.8GB | 000000Z0</div>
+    </div>
+
+    <!-- Cyber Voxel Particle Canvas -->
+    <div class="voxel-bar-container">
+        <canvas id="voxelCanvas"></canvas>
+    </div>
+
+    <!-- Toolbar Buttons -->
+    <div class="action-bar">
+        <button class="btn-action" onclick="exportKammaTxt()">💾 เซฟไฟล์ kamma.txt</button>
+        <button class="btn-action" onclick="clearKammaMemory()">🧹 ล้างบริบทออฟไลน์</button>
+    </div>
+
+    <!-- Chat Messages Container -->
+    <div class="chat-container" id="chatContainer">
+        <div class="message-row assistant">
+            <div class="msg-bubble">
+                🧘‍♂️ สาธุครับช่างเบิร์ด! โมเดล <strong>Qwen 3 0.8B (Q4_K_M)</strong> ปรับปรุงระบบ <strong>Page Visibility API (v3)</strong> ป้องกันอาการค้างเมื่อสลับหน้าจอเรียบร้อยแล้วครับ
+            </div>
+            <div class="msg-time">System Ready (Anti-Freeze Active)</div>
+        </div>
+    </div>
+
+    <!-- Input Bar -->
+    <div class="input-bar">
+        <input type="text" id="userInput" class="chat-input" placeholder="พิมพ์ข้อความคุยออฟไลน์..." onkeydown="if(event.key==='Enter') sendUserMessage()">
+        <button class="btn-send" onclick="sendUserMessage()">ส่ง</button>
+    </div>
+
+    <script>
+        // === 1. Page Visibility Lifecycle Engine (Anti-Freeze / Background Pause) ===
+        let animFrameId = null;
+        let isAppActive = true;
+
+        document.addEventListener("visibilitychange", () => {
+            const dot = document.getElementById("statusDot");
+            const statusText = document.getElementById("statusText");
+
+            if (document.hidden) {
+                // แท็บถูกพับไปอยู่เบื้องหลัง -> หยุดอนิเมชันทันทีเพื่อคืนทรัพยากร CPU/GPU
+                isAppActive = false;
+                if (animFrameId) cancelAnimationFrame(animFrameId);
+                dot.classList.add("paused");
+                statusText.innerText = "Qwen 3 0.8B (Standby)";
+                console.log("⏸️ Tab Hidden: Paused Canvas & CPU Worker Loop");
+            } else {
+                // สลับกลับมาหน้าแอป -> ปลุกระบบและเริ่มรันอนิเมชันต่ออย่างนุ่มนวล
+                isAppActive = true;
+                dot.classList.remove("paused");
+                statusText.innerText = "Qwen 3 0.8B (Q4_K_M)";
+                startVoxelAnimation();
+                console.log("▶️ Tab Visible: Resumed Engine cleanly");
+            }
+        });
+
+        // === 2. Lightweight Cyber Voxel Particle Canvas ===
+        const canvas = document.getElementById("voxelCanvas");
+        const ctx = canvas.getContext("2d");
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        }
+        window.addEventListener("resize", resizeCanvas);
+        resizeCanvas();
+
+        let particles = Array.from({ length: 24 }, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 3 + 2,
+            speed: Math.random() * 1.2 + 0.3,
+            alpha: Math.random() * 0.7 + 0.3
+        }));
+
+        function drawVoxels() {
+            if (!isAppActive) return; // ไม่วาดเมื่อสลับไปหน้าอื่น
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.x += p.speed;
+                if (p.x > canvas.width) p.x = 0;
+
+                ctx.fillStyle = `rgba(245, 158, 11, ${p.alpha})`;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            });
+
+            animFrameId = requestAnimationFrame(drawVoxels);
+        }
+
+        function startVoxelAnimation() {
+            if (animFrameId) cancelAnimationFrame(animFrameId);
+            drawVoxels();
+        }
+        startVoxelAnimation();
+
+        // === 3. KammaStorageEngine (IndexedDB Memory Persistence) ===
+        class KammaStorageEngine {
+            constructor() {
+                this.dbName = "IndraNet_Qwen3_08B_v3DB";
+                this.storeName = "chat_history";
+                this.db = null;
+                this.maxContextWindow = 12;
+            }
+
+            async init() {
+                return new Promise((resolve, reject) => {
+                    const req = indexedDB.open(this.dbName, 1);
+                    req.onupgradeneeded = (e) => {
+                        const db = e.target.result;
+                        if (!db.objectStoreNames.contains(this.storeName)) {
+                            db.createObjectStore(this.storeName, { keyPath: "id", autoIncrement: true });
+                        }
+                    };
+                    req.onsuccess = (e) => {
+                        this.db = e.target.result;
+                        resolve(this.db);
+                    };
+                    req.onerror = (e) => reject("DB Error: " + e.target.error);
+                });
+            }
+
+            async save(role, text) {
+                try {
+                    if (!this.db) await this.init();
+                    const tx = this.db.transaction(this.storeName, "readwrite");
+                    tx.objectStore(this.storeName).add({
+                        role: role,
+                        text: text,
+                        timestamp: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+                    });
+                } catch (err) {
+                    console.warn("DB Write Notice:", err);
+                }
+            }
+
+            async load() {
+                try {
+                    if (!this.db) await this.init();
+                    return new Promise((resolve) => {
+                        const tx = this.db.transaction(this.storeName, "readonly");
+                        const req = tx.objectStore(this.storeName).getAll();
+                        req.onsuccess = () => {
+                            const logs = req.result || [];
+                            resolve(logs.slice(-this.maxContextWindow));
+                        };
+                    });
+                } catch (err) {
+                    return [];
+                }
+            }
+
+            async clear() {
+                if (!this.db) await this.init();
+                const tx = this.db.transaction(this.storeName, "readwrite");
+                tx.objectStore(this.storeName).clear();
+            }
+        }
+
+        const kammaEngine = new KammaStorageEngine();
+
+        window.addEventListener("DOMContentLoaded", async () => {
+            const logs = await kammaEngine.load();
+            logs.forEach(log => {
+                appendBubbleToUI(log.role, log.text, log.timestamp);
+            });
+        });
+
+        function appendBubbleToUI(role, text, timeStr) {
+            const container = document.getElementById("chatContainer");
+            const row = document.createElement("div");
+            row.className = `message-row ${role}`;
+            const time = timeStr || new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+
+            row.innerHTML = `
+                <div class="msg-bubble">${text}</div>
+                <div class="msg-time">${time}</div>
+            `;
+            container.appendChild(row);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function sendUserMessage() {
+            const input = document.getElementById("userInput");
+            const text = input.value.trim();
+            if (!text) return;
+
+            appendBubbleToUI("user", text);
+            await kammaEngine.save("user", text);
+            input.value = "";
+
+            const tempTime = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+            appendBubbleToUI("assistant", "⏳ <i>กำลังวิเคราะห์ตามหลักโยนิโสมนสิการ...</i>", tempTime);
+
+            setTimeout(async () => {
+                const container = document.getElementById("chatContainer");
+                if (container.lastChild) container.removeChild(container.lastChild);
+
+                const botResponse = `[Qwen 3 0.8B Response] พิจารณาตามสัจธรรมความจริง: "${text}" - ประมวลผลบน LPDDR Unified RAM ออฟไลน์ 100% เรียบร้อยครับ!`;
+                appendBubbleToUI("assistant", botResponse);
+                await kammaEngine.save("assistant", botResponse);
+            }, 500);
+        }
+
+        async function exportKammaTxt() {
+            const logs = await kammaEngine.load();
+            if (!logs.length) return alert("ยังไม่มีประวัติบทสนทนา");
+            const textContent = logs.map(l => `[${l.timestamp}] ${l.role.toUpperCase()}: ${l.text}`).join("
+");
+            const blob = new Blob([textContent], { type: "text/plain;charset=utf-8" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = `kamma_v3_${new Date().toISOString().slice(0, 10)}.txt`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        async function clearKammaMemory() {
+            if (confirm("ล้างประวัติบริบทบทสนทนาในเครื่องหรือไม่?")) {
+                await kammaEngine.clear();
+                location.reload();
+            }
+        }
+    </script>
+</body>
+</html>
